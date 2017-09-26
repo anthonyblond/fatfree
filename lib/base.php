@@ -2071,17 +2071,26 @@ final class Base extends Prefab implements ArrayAccess {
 				dirname($_SERVER['SCRIPT_NAME'])),'/');
 		$uri=parse_url($_SERVER['REQUEST_URI']);
 		$path=preg_replace('/^'.preg_quote($base,'/').'/','',$uri['path']);
-		call_user_func_array('session_set_cookie_params',
-			$jar=array(
-				'expire'=>0,
-				'path'=>$base?:'/',
-				'domain'=>is_int(strpos($_SERVER['SERVER_NAME'],'.')) &&
-					!filter_var($_SERVER['SERVER_NAME'],FILTER_VALIDATE_IP)?
-					$_SERVER['SERVER_NAME']:'',
-				'secure'=>($scheme=='https'),
-				'httponly'=>TRUE
-			)
-		);
+
+		// unfinishedteleporter change: Only set cookie parameters if the domain hasn't already been
+		// set. This resolves a problem in some situations when running in Drupal, where the
+		// a different domain is chosen (without a dot at front) resulting in an extra cookie that
+		// causes all sorts of problems.
+		$existCookieParams = call_user_func('session_get_cookie_params');
+		if (!$existCookieParams['domain']) {
+			call_user_func_array('session_set_cookie_params',
+				$jar=array(
+					'expire'=>0,
+					'path'=>$base?:'/',
+					'domain'=>is_int(strpos($_SERVER['SERVER_NAME'],'.')) &&
+						!filter_var($_SERVER['SERVER_NAME'],FILTER_VALIDATE_IP)?
+						$_SERVER['SERVER_NAME']:'',
+					'secure'=>($scheme=='https'),
+					'httponly'=>TRUE
+				)
+			);
+		}
+
 		$port=0;
 		if (isset($_SERVER['SERVER_PORT']))
 			$port=$_SERVER['SERVER_PORT'];
